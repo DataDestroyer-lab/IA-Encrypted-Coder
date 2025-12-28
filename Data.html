@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure AI Code Vault</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Crypto JS for Encryption -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Marked for Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- QR Code Generator & Scanner -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Inter:wght@400;600;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #e2e8f0; /* Slate 200 */
+        }
+        
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .markdown-body pre {
+            background-color: #1e293b;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+        }
+        .markdown-body code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+            color: #38bdf8;
+        }
+        .markdown-body p {
+            margin-bottom: 0.75rem;
+            line-height: 1.6;
+        }
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+        }
+
+        /* QR Code Scanner Customization */
+        #qr-reader {
+            border: none !important;
+        }
+        #qr-reader video {
+            border-radius: 0.75rem;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col">
+
+    <!-- Auth / Lock Screen -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 transition-opacity duration-500">
+        
+        <!-- STANDARD LOGIN (Desktop) -->
+        <div id="login-container" class="w-full max-w-md p-8 bg-slate-900 rounded-xl border border-slate-800 shadow-2xl relative">
+            <div class="flex justify-center mb-6">
+                <div class="relative">
+                    <i data-lucide="shield-lock" class="w-16 h-16 text-emerald-500"></i>
+                    <div class="absolute -bottom-1 -right-1 bg-slate-800 rounded-full p-1 border border-slate-700">
+                        <i data-lucide="qr-code" class="w-4 h-4 text-white"></i>
+                    </div>
+                </div>
+            </div>
+            <h1 class="text-3xl font-bold text-center text-white mb-2">Secure Vault</h1>
+            <p class="text-slate-400 text-center mb-8">Enter Master Password</p>
+            
+            <form id="login-form" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Master Password</label>
+                    <div class="relative">
+                        <input type="password" id="master-password" 
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-4 pr-10 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all placeholder-slate-500"
+                            placeholder="••••••••••••">
+                        <button type="button" id="toggle-password" class="absolute right-3 top-3 text-slate-500 hover:text-white">
+                            <i data-lucide="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-2">
+                    <button type="submit" 
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="unlock"></i> Unlock
+                    </button>
+                    <button type="button" id="phone-login-btn" 
+                        class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="smartphone"></i> Login with iPhone
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-6 pt-6 border-t border-slate-800 text-center">
+                <button id="show-reset-btn" class="text-xs text-red-400 hover:text-red-300 underline">
+                    Forgot Password? / Reset Workspace
+                </button>
+            </div>
+        </div>
+
+        <!-- REMOTE LOGIN (QR Display) -->
+        <div id="remote-login-container" class="w-full max-w-md p-8 bg-slate-900 rounded-xl border border-slate-800 shadow-2xl relative hidden flex flex-col items-center">
+            <h2 class="text-xl font-bold text-white mb-4">Scan with iPhone</h2>
+            <div id="remote-qr-display" class="bg-white p-2 rounded-lg mb-4"></div>
+            <p class="text-slate-400 text-center text-sm mb-6">
+                1. Open Camera on your iPhone.<br>
+                2. Scan this code to open the Authorizer.<br>
+                3. Enter your password on your phone.
+            </p>
+            <div class="flex items-center gap-2 text-xs text-emerald-400 animate-pulse mb-6">
+                <i data-lucide="wifi" class="w-4 h-4"></i> Waiting for phone...
+            </div>
+            <button id="cancel-remote-btn" class="text-slate-500 hover:text-white text-sm">Cancel</button>
+        </div>
+
+        <!-- PHONE AUTHORIZER UI (Only shown on phone) -->
+        <div id="phone-auth-container" class="w-full max-w-md p-8 bg-slate-900 rounded-xl border border-slate-800 shadow-2xl relative hidden">
+            <div class="flex justify-center mb-6">
+                <i data-lucide="smartphone" class="w-16 h-16 text-blue-500"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-center text-white mb-2">Authorize Desktop</h1>
+            <p class="text-slate-400 text-center mb-6 text-sm">Enter your Master Password below to log in the device requesting access.</p>
+            
+            <form id="phone-auth-form" class="space-y-4">
+                <input type="password" id="phone-password" 
+                    class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="Master Password" required>
+                <button type="submit" id="phone-authorize-btn"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-colors">
+                    Authorize Device
+                </button>
+            </form>
+            <div id="phone-status" class="mt-4 text-center text-xs text-slate-500"></div>
+        </div>
+
+        <!-- Reset Confirmation Modal -->
+        <div id="reset-modal" class="absolute inset-0 bg-slate-950/90 flex items-center justify-center hidden z-[60]">
+            <div class="bg-red-950/50 border border-red-800 p-6 rounded-xl max-w-sm text-center">
+                <h3 class="text-red-400 font-bold text-lg mb-2">⚠️ Danger Zone</h3>
+                <p class="text-slate-300 text-sm mb-4">
+                    If you lost your password, you cannot decrypt your old files. 
+                    This action will <b>DELETE ALL YOUR SAVED FILES</b> so you can start fresh.
+                </p>
+                <div class="flex gap-2 justify-center">
+                    <button id="cancel-reset-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded text-sm">Cancel</button>
+                    <button id="confirm-reset-btn" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold">Delete Everything</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-xl w-96 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="settings" class="w-5 h-5 text-slate-400"></i> AI Provider Settings
+                </h2>
+                <button id="close-settings-btn" class="text-slate-500 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Provider Selector -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Active Provider</label>
+                    <select id="active-provider" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI (ChatGPT)</option>
+                        <option value="perplexity">Perplexity AI</option>
+                    </select>
+                </div>
+
+                <!-- Gemini Config -->
+                <div id="config-gemini" class="provider-config">
+                    <label class="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Gemini Model</label>
+                    <select id="gemini-model" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm mb-3">
+                        <option value="gemini-2.5-flash-preview-09-2025">Gemini 2.5 Flash</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">API Key (Optional)</label>
+                    <input type="password" id="gemini-key" placeholder="Using Default Key" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2 text-sm">
+                </div>
+
+                <!-- OpenAI Config -->
+                <div id="config-openai" class="provider-config hidden">
+                    <label class="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">ChatGPT Model</label>
+                    <select id="openai-model" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm mb-3">
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">OpenAI API Key (Required)</label>
+                    <input type="password" id="openai-key" placeholder="sk-..." class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2 text-sm">
+                </div>
+
+                <!-- Perplexity Config -->
+                <div id="config-perplexity" class="provider-config hidden">
+                    <label class="block text-xs font-bold text-teal-400 uppercase tracking-wider mb-2">Perplexity Model</label>
+                    <select id="perplexity-model" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm mb-3">
+                        <option value="sonar-pro">Sonar Pro</option>
+                        <option value="sonar">Sonar</option>
+                    </select>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Perplexity API Key (Required)</label>
+                    <input type="password" id="perplexity-key" placeholder="pplx-..." class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2 text-sm">
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <button id="save-settings-btn" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-lg transition-colors shadow-lg shadow-purple-900/20">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Layout (Hidden by default) -->
+    <div id="app-layout" class="flex-1 flex hidden opacity-0 transition-opacity duration-500">
+        
+        <!-- Sidebar: Files -->
+        <div class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="font-bold text-slate-200 flex items-center gap-2">
+                    <i data-lucide="files" class="w-4 h-4"></i> Files
+                </h2>
+                <button id="new-file-btn" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition" title="New File">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- File items injected here -->
+            </div>
+            
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-slate-800 flex flex-col gap-3">
+                <div class="text-xs text-slate-500 flex flex-col gap-1">
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="lock" class="w-3 h-3"></i> 
+                        <span>E2E Encrypted</span>
+                    </div>
+                    <div id="user-id-display" class="truncate font-mono opacity-50"></div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button id="open-settings-btn" class="flex-1 flex items-center justify-center gap-2 text-sm text-slate-400 hover:text-white transition p-2 rounded hover:bg-slate-800 bg-slate-900 border border-slate-800">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+                    <!-- Relock Button -->
+                    <button id="relock-btn" class="flex-1 flex items-center justify-center gap-2 text-sm text-amber-500 hover:text-amber-400 transition p-2 rounded hover:bg-slate-800 bg-slate-900 border border-slate-800" title="Relock">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Editor Area -->
+        <div class="flex-1 flex flex-col bg-slate-950 relative">
+            <!-- Toolbar -->
+            <div class="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur">
+                <div class="flex-1 flex items-center gap-4">
+                    <input type="text" id="file-title" 
+                        class="bg-transparent border-none text-white font-bold text-lg focus:ring-0 w-64 placeholder-slate-600 truncate"
+                        placeholder="Untitled">
+                    
+                    <!-- Language Selector -->
+                    <select id="file-language" class="bg-slate-800 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none w-32">
+                        <option value="text">Plain Text</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="html">HTML</option>
+                        <option value="css">CSS</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="sql">SQL</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <span id="save-status" class="text-xs text-slate-500 font-mono">Unsaved</span>
+                    
+                    <!-- Delete Button -->
+                    <button id="delete-btn" class="text-red-500 hover:text-red-400 p-2 rounded hover:bg-red-900/20 transition hidden" title="Delete File Permanently">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+
+                    <!-- Download Button -->
+                    <button id="download-btn" class="text-slate-400 hover:text-white p-2 rounded hover:bg-slate-800 transition" title="Download as File">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </button>
+
+                    <button id="save-btn" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition">
+                        <i data-lucide="save" class="w-4 h-4"></i> Save
+                    </button>
+                </div>
+            </div>
+
+            <!-- Editor -->
+            <div class="flex-1 relative">
+                <textarea id="code-editor" 
+                    class="w-full h-full bg-slate-950 text-slate-200 font-mono p-6 resize-none focus:outline-none leading-relaxed text-sm"
+                    placeholder="// Start coding securely here...
+// Select language above. Click download to save file locally.
+" spellcheck="false"></textarea>
+            </div>
+        </div>
+
+        <!-- AI Panel -->
+        <div class="w-96 bg-slate-900 border-l border-slate-800 flex flex-col flex-shrink-0">
+            <div class="p-4 border-b border-slate-800 bg-slate-900 z-10 shadow-sm">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="font-bold text-purple-400 flex items-center gap-2">
+                        <i data-lucide="bot" class="w-4 h-4"></i> AI Assistant
+                    </h2>
+                    <span id="current-provider-badge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700 truncate max-w-[120px]">
+                        Gemini
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500">Ask for code, debugging, or logic.</p>
+            </div>
+
+            <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm scroll-smooth">
+                <!-- Chat messages -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs font-bold text-purple-400">System</span>
+                    <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-800 text-slate-300">
+                        Ready. Configure your AI provider in Settings.
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-800 bg-slate-900">
+                <div class="relative">
+                    <textarea id="prompt-input" 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-3 pr-10 py-3 text-slate-200 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 focus:outline-none resize-none text-sm"
+                        rows="3" placeholder="Ask AI..."></textarea>
+                    <button id="send-prompt-btn" class="absolute bottom-2 right-2 p-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-md transition disabled:opacity-50">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Constants & Globals ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const defaultGeminiKey = ""; 
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        let currentUser = null;
+        let masterPassword = null;
+        let currentFileId = null;
+        
+        // Settings State
+        let settings = {
+            provider: 'gemini',
+            gemini: { model: 'gemini-2.5-flash-preview-09-2025', key: '' },
+            openai: { model: 'gpt-4o', key: '' },
+            perplexity: { model: 'sonar-pro', key: '' }
+        };
+
+        // --- 2. Settings Management ---
+        function loadSettings() {
+            const saved = localStorage.getItem('vault_settings_v2');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    settings = { ...settings, ...parsed };
+                } catch (e) { console.error("Settings parse error", e); }
+            }
+            
+            document.getElementById('active-provider').value = settings.provider;
+            document.getElementById('gemini-model').value = settings.gemini.model;
+            document.getElementById('gemini-key').value = settings.gemini.key;
+            document.getElementById('openai-model').value = settings.openai.model;
+            document.getElementById('openai-key').value = settings.openai.key;
+            document.getElementById('perplexity-model').value = settings.perplexity.model;
+            document.getElementById('perplexity-key').value = settings.perplexity.key;
+            
+            updateProviderVisibility();
+            updateProviderBadge();
+        }
+
+        function saveSettings() {
+            settings.provider = document.getElementById('active-provider').value;
+            settings.gemini.model = document.getElementById('gemini-model').value;
+            settings.gemini.key = document.getElementById('gemini-key').value.trim();
+            settings.openai.model = document.getElementById('openai-model').value;
+            settings.openai.key = document.getElementById('openai-key').value.trim();
+            settings.perplexity.model = document.getElementById('perplexity-model').value;
+            settings.perplexity.key = document.getElementById('perplexity-key').value.trim();
+            
+            localStorage.setItem('vault_settings_v2', JSON.stringify(settings));
+            document.getElementById('settings-modal').classList.add('hidden');
+            updateProviderBadge();
+            appendMessage('System', `Switched to provider: **${settings.provider.toUpperCase()}**`);
+        }
+
+        const providerSelect = document.getElementById('active-provider');
+        providerSelect.addEventListener('change', updateProviderVisibility);
+
+        function updateProviderVisibility() {
+            const val = document.getElementById('active-provider').value;
+            document.querySelectorAll('.provider-config').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`config-${val}`).classList.remove('hidden');
+        }
+
+        function updateProviderBadge() {
+            const badge = document.getElementById('current-provider-badge');
+            let text = "";
+            if (settings.provider === 'gemini') text = `Gemini (${settings.gemini.model.split('-')[1]})`;
+            else if (settings.provider === 'openai') text = `ChatGPT (${settings.openai.model})`;
+            else if (settings.provider === 'perplexity') text = `PPLX (${settings.perplexity.model})`;
+            badge.textContent = text;
+        }
+
+        document.getElementById('open-settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.remove('hidden');
+            updateProviderVisibility();
+        });
+        document.getElementById('close-settings-btn').addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.add('hidden');
+        });
+        document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+
+
+        // --- 3. Authentication & Startup ---
+        async function initAuth() {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await auth.signInWithCustomToken(__initial_auth_token);
+            } else {
+                await auth.signInAnonymously();
+            }
+        }
+        initAuth();
+
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('user-id-display').textContent = `ID: ${user.uid}`;
+                loadSettings();
+                checkUrlForRemoteAuth(); // CHECK FOR PHONE MODE
+            }
+        });
+
+        // --- 4. Encryption Logic ---
+        function encryptData(text) {
+            if (!masterPassword) return null;
+            try { return CryptoJS.AES.encrypt(text, masterPassword).toString(); } catch (e) { return null; }
+        }
+
+        function decryptData(cipherText) {
+            if (!masterPassword) return null;
+            try {
+                const bytes = CryptoJS.AES.decrypt(cipherText, masterPassword);
+                const originalText = bytes.toString(CryptoJS.enc.Utf8);
+                if (!originalText && cipherText.length > 0) throw new Error("Wrong password");
+                return originalText;
+            } catch (e) { return null; }
+        }
+
+        // --- 5. UI Logic: Login, Reset, Relock ---
+        const loginForm = document.getElementById('login-form');
+        const authScreen = document.getElementById('auth-screen');
+        const appLayout = document.getElementById('app-layout');
+        const masterPassInput = document.getElementById('master-password');
+        const togglePassBtn = document.getElementById('toggle-password');
+
+        // Toggle Password Visibility
+        togglePassBtn.addEventListener('click', () => {
+            const type = masterPassInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            masterPassInput.setAttribute('type', type);
+            togglePassBtn.innerHTML = type === 'password' 
+                ? '<i data-lucide="eye" class="w-5 h-5"></i>' 
+                : '<i data-lucide="eye-off" class="w-5 h-5 text-emerald-400"></i>';
+            lucide.createIcons();
+        });
+
+        function completeLogin(password) {
+             if (!password || password.length < 4) { alert("Password too short."); return; }
+            masterPassword = password;
+            
+            authScreen.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                authScreen.style.display = 'none';
+                appLayout.classList.remove('hidden');
+                void appLayout.offsetWidth; 
+                appLayout.classList.remove('opacity-0');
+                loadFileList();
+            }, 500);
+        }
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            completeLogin(masterPassInput.value);
+        });
+
+        // Relock Button Logic
+        document.getElementById('relock-btn').addEventListener('click', () => {
+            if (confirm("Lock Workspace?\nThis will clear your current session.")) {
+                masterPassword = null;
+                currentFileId = null;
+                document.getElementById('file-list').innerHTML = ''; 
+                document.getElementById('code-editor').value = '';
+                
+                appLayout.classList.add('opacity-0');
+                appLayout.classList.add('hidden');
+                
+                authScreen.style.display = 'flex';
+                authScreen.classList.remove('opacity-0', 'pointer-events-none');
+                
+                // Reset views
+                document.getElementById('login-container').classList.remove('hidden');
+                document.getElementById('remote-login-container').classList.add('hidden');
+                document.getElementById('phone-auth-container').classList.add('hidden');
+                
+                masterPassInput.value = '';
+                masterPassInput.focus();
+            }
+        });
+
+        // Reset Logic
+        const resetModal = document.getElementById('reset-modal');
+        document.getElementById('show-reset-btn').addEventListener('click', () => resetModal.classList.remove('hidden'));
+        document.getElementById('cancel-reset-btn').addEventListener('click', () => resetModal.classList.add('hidden'));
+        
+        document.getElementById('confirm-reset-btn').addEventListener('click', async () => {
+            if (!currentUser) return;
+            const btn = document.getElementById('confirm-reset-btn');
+            btn.textContent = "Deleting...";
+            btn.disabled = true;
+
+            try {
+                const collectionRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('secure_codes');
+                const snapshot = await collectionRef.get();
+                const batch = db.batch();
+                snapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+                
+                alert("Workspace reset. You can now use a new password.");
+                resetModal.classList.add('hidden');
+                masterPassInput.value = "";
+                btn.textContent = "Delete Everything";
+                btn.disabled = false;
+            } catch (e) {
+                console.error(e);
+                alert("Error resetting workspace. Try refreshing the page.");
+            }
+        });
+
+        // --- 6. Remote Login Logic (Desktop & Phone) ---
+        
+        // --- 6a. DESKTOP SIDE: Show QR & Listen ---
+        document.getElementById('phone-login-btn').addEventListener('click', () => {
+            document.getElementById('login-container').classList.add('hidden');
+            document.getElementById('remote-login-container').classList.remove('hidden');
+            startRemoteSession();
+        });
+
+        document.getElementById('cancel-remote-btn').addEventListener('click', () => {
+            document.getElementById('remote-login-container').classList.add('hidden');
+            document.getElementById('login-container').classList.remove('hidden');
+            // Stop listener logic handled implicitly by not caring anymore
+        });
+
+        function startRemoteSession() {
+            // Generate Session ID
+            const sessionId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+            
+            // Build URL
+            const urlObj = new URL(window.location.href);
+            urlObj.searchParams.set('sid', sessionId);
+            const authUrl = urlObj.toString();
+            
+            // Render QR
+            const qrContainer = document.getElementById('remote-qr-display');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: authUrl,
+                width: 180,
+                height: 180
+            });
+            
+            // Listen for Handshake
+            const handshakeRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('handshakes').doc(sessionId);
+            
+            const unsubscribe = handshakeRef.onSnapshot((doc) => {
+                if(doc.exists) {
+                    const data = doc.data();
+                    if(data && data.auth_token) {
+                        // Success! We got the password (auth_token in this simple case is the password)
+                        handshakeRef.delete(); // Cleanup
+                        completeLogin(data.auth_token);
+                    }
+                }
+            });
+            
+            // Simple timeout/cleanup listener if user cancels? 
+            // In this simple file, we just let it run until auth or refresh.
+        }
+
+        // --- 6b. PHONE SIDE: Check URL & Authorize ---
+        function checkUrlForRemoteAuth() {
+            const params = new URLSearchParams(window.location.search);
+            const sid = params.get('sid');
+            
+            if (sid) {
+                // We are in Phone Mode
+                document.getElementById('login-container').classList.add('hidden');
+                document.getElementById('remote-login-container').classList.add('hidden');
+                document.getElementById('phone-auth-container').classList.remove('hidden');
+                
+                // Handle Authorization
+                document.getElementById('phone-auth-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const pwd = document.getElementById('phone-password').value;
+                    const status = document.getElementById('phone-status');
+                    
+                    if(!pwd) return;
+                    
+                    status.textContent = "Sending authorization...";
+                    
+                    try {
+                         // Write password to public handshake doc so desktop can read it
+                         // Security Warning: In a real app, use E2E encryption for this handshake.
+                         const handshakeRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('handshakes').doc(sid);
+                         
+                         await handshakeRef.set({
+                             auth_token: pwd,
+                             timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                         });
+                         
+                         status.textContent = "Success! You can close this window.";
+                         status.className = "mt-4 text-center text-xs text-green-500 font-bold";
+                         document.getElementById('phone-authorize-btn').disabled = true;
+                         document.getElementById('phone-authorize-btn').textContent = "Device Authorized";
+                    } catch(err) {
+                        console.error(err);
+                        status.textContent = "Error connecting. Try scanning again.";
+                        status.className = "mt-4 text-center text-xs text-red-500";
+                    }
+                });
+            }
+        }
+
+
+        // --- 7. Firestore Logic (Files + Language + Download + Delete) ---
+        const titleInput = document.getElementById('file-title');
+        const editor = document.getElementById('code-editor');
+        const languageSelect = document.getElementById('file-language'); 
+        const fileListEl = document.getElementById('file-list');
+        const saveStatus = document.getElementById('save-status');
+        const deleteBtn = document.getElementById('delete-btn');
+
+        document.getElementById('new-file-btn').addEventListener('click', () => {
+            currentFileId = null;
+            titleInput.value = '';
+            editor.value = '';
+            languageSelect.value = 'text'; 
+            titleInput.focus();
+            saveStatus.textContent = 'Unsaved';
+            deleteBtn.classList.add('hidden'); // Cannot delete unsaved file
+        });
+
+        // Delete Logic
+        deleteBtn.addEventListener('click', async () => {
+            if(!currentFileId) return;
+            if(confirm("Are you sure you want to PERMANENTLY delete this file?")) {
+                try {
+                    await db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('secure_codes').doc(currentFileId).delete();
+                    currentFileId = null;
+                    titleInput.value = '';
+                    editor.value = '';
+                    languageSelect.value = 'text';
+                    deleteBtn.classList.add('hidden');
+                    saveStatus.textContent = "Deleted";
+                } catch(e) { alert("Failed to delete file."); }
+            }
+        });
+
+        // Download Feature
+        document.getElementById('download-btn').addEventListener('click', () => {
+            const content = editor.value;
+            const filename = titleInput.value || "untitled";
+            const lang = languageSelect.value;
+            let ext = ".txt";
+            if (lang === 'javascript') ext = ".js";
+            else if (lang === 'python') ext = ".py";
+            else if (lang === 'html') ext = ".html";
+            else if (lang === 'css') ext = ".css";
+            else if (lang === 'java') ext = ".java";
+            else if (lang === 'cpp') ext = ".cpp";
+            else if (lang === 'sql') ext = ".sql";
+            let finalName = filename;
+            if (!finalName.includes('.')) finalName += ext;
+
+            const blob = new Blob([content], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = finalName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            if (!currentUser || !masterPassword) return;
+            const title = titleInput.value || "Untitled";
+            const content = editor.value;
+            const language = languageSelect.value;
+            
+            const encryptedContent = encryptData(content);
+            const encryptedTitle = encryptData(title);
+            const encryptedLang = encryptData(language);
+
+            if (!encryptedContent || !encryptedTitle) { alert("Encryption failed."); return; }
+
+            saveStatus.textContent = "Saving...";
+            
+            try {
+                const data = {
+                    title: encryptedTitle,
+                    content: encryptedContent,
+                    language: encryptedLang,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                const collectionRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('secure_codes');
+
+                if (currentFileId) {
+                    await collectionRef.doc(currentFileId).update(data);
+                } else {
+                    const docRef = await collectionRef.add(data);
+                    currentFileId = docRef.id;
+                }
+                saveStatus.textContent = "Saved";
+                deleteBtn.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+                saveStatus.textContent = "Error";
+            }
+        });
+
+        function loadFileList() {
+            if (!currentUser) return;
+            const collectionRef = db.collection('artifacts').doc(appId).collection('users').doc(currentUser.uid).collection('secure_codes');
+            
+            collectionRef.orderBy('updatedAt', 'desc').onSnapshot((snapshot) => {
+                fileListEl.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    let displayTitle = "Encrypted File";
+                    let displayLang = "???";
+                    let isBadKey = false;
+                    
+                    try {
+                        const t = decryptData(data.title);
+                        if (t) displayTitle = t;
+                        else { displayTitle = "(Bad Password)"; isBadKey = true; }
+                        
+                        if(data.language && !isBadKey) {
+                            const l = decryptData(data.language);
+                            if(l) displayLang = l;
+                        } else { displayLang = isBadKey ? '?' : 'text'; }
+                    } catch (e) { displayTitle = "(Bad Password)"; isBadKey = true; }
+
+                    let badgeColor = "text-slate-500";
+                    if(displayLang === 'python') badgeColor = "text-yellow-500";
+                    if(displayLang === 'javascript') badgeColor = "text-blue-400";
+                    if(displayLang === 'html') badgeColor = "text-orange-500";
+                    if(isBadKey) badgeColor = "text-red-500";
+
+                    const div = document.createElement('div');
+                    div.className = `p-3 rounded-md cursor-pointer text-sm flex items-center justify-between transition ${doc.id === currentFileId ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`;
+                    
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <i data-lucide="${isBadKey ? 'lock' : 'file-code'}" class="w-4 h-4 flex-shrink-0 ${isBadKey ? 'text-red-500' : ''}"></i> 
+                            <span class="truncate ${isBadKey ? 'text-red-400 italic' : ''}">${displayTitle}</span>
+                        </div>
+                        <span class="text-[10px] uppercase font-bold ${badgeColor} opacity-75">${displayLang.substring(0,3)}</span>
+                    `;
+                    div.onclick = () => loadFile(doc.id, data);
+                    fileListEl.appendChild(div);
+                });
+                lucide.createIcons();
+            });
+        }
+
+        function loadFile(id, data) {
+            currentFileId = id;
+            deleteBtn.classList.remove('hidden');
+
+            const decryptedContent = decryptData(data.content);
+            const decryptedTitle = decryptData(data.title);
+            let decryptedLang = 'text';
+            if(data.language) decryptedLang = decryptData(data.language) || 'text';
+
+            if (decryptedContent !== null) {
+                editor.value = decryptedContent;
+                titleInput.value = decryptedTitle;
+                languageSelect.value = decryptedLang;
+                saveStatus.textContent = "Loaded";
+            } else {
+                editor.value = `⚠️ DECRYPTION FAILED ⚠️\n\nThe password you entered ("${masterPassword.substring(0,2)}***") is incorrect for this file.\n\nOPTIONS:\n1. Try a different password: Click the yellow Lock icon in the sidebar (bottom-left) to relock the workspace and try logging in again.\n2. Remove this file: If you lost the password, this data is unrecoverable. Click the red Trash icon in the toolbar above to delete this file.`;
+                titleInput.value = "Locked File";
+                saveStatus.textContent = "Locked";
+            }
+        }
+
+        // --- 8. AI Logic (Router) ---
+        async function callAI(prompt) {
+            const provider = settings.provider;
+            try {
+                if (provider === 'gemini') return await callGemini(prompt);
+                else if (provider === 'openai') return await callOpenAI(prompt);
+                else if (provider === 'perplexity') return await callPerplexity(prompt);
+            } catch (e) { return `Error calling ${provider}: ${e.message}`; }
+        }
+
+        async function callGemini(prompt) {
+            const key = settings.gemini.key || defaultGeminiKey;
+            const model = settings.gemini.model;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!res.ok) throw new Error(`Gemini API Status: ${res.status}`);
+            const data = await res.json();
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        async function callOpenAI(prompt) {
+            const key = settings.openai.key;
+            const model = settings.openai.model;
+            if (!key) throw new Error("OpenAI API Key is missing in Settings.");
+            const url = "https://api.openai.com/v1/chat/completions";
+            const payload = { model: model, messages: [{ role: "user", content: prompt }] };
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify(payload) });
+            if (!res.ok) throw new Error(`OpenAI API Status: ${res.status}`);
+            const data = await res.json();
+            return data.choices[0].message.content;
+        }
+
+        async function callPerplexity(prompt) {
+            const key = settings.perplexity.key;
+            const model = settings.perplexity.model;
+            if (!key) throw new Error("Perplexity API Key is missing in Settings.");
+            const url = "https://api.perplexity.ai/chat/completions";
+            const payload = { model: model, messages: [{ role: "user", content: prompt }] };
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify(payload) });
+            if (!res.ok) throw new Error(`Perplexity API Status: ${res.status}`);
+            const data = await res.json();
+            return data.choices[0].message.content;
+        }
+
+        const promptInput = document.getElementById('prompt-input');
+        const sendBtn = document.getElementById('send-prompt-btn');
+        const chatHistory = document.getElementById('chat-history');
+
+        function appendMessage(role, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = "flex flex-col gap-1";
+            let color = "text-purple-400";
+            if(role === 'User') color = "text-emerald-400 self-end";
+            if(role === 'System') color = "text-slate-500 font-normal italic";
+            const header = document.createElement('span');
+            header.className = `text-xs font-bold ${color}`;
+            header.textContent = role;
+            const contentDiv = document.createElement('div');
+            contentDiv.className = `${role === 'User' ? 'bg-emerald-900/30 border-emerald-800' : 'bg-slate-800/50 border-slate-800'} p-3 rounded-lg border text-slate-300 text-sm markdown-body`;
+            if (role === 'User') contentDiv.textContent = text;
+            else contentDiv.innerHTML = marked.parse(text);
+            msgDiv.appendChild(header);
+            msgDiv.appendChild(contentDiv);
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        sendBtn.addEventListener('click', async () => {
+            const text = promptInput.value.trim();
+            if (!text) return;
+            const currentCode = editor.value;
+            const language = languageSelect.value;
+            const fullPrompt = `Context: User is editing a ${language} file.\nCode:\n\`\`\`${language}\n${currentCode}\n\`\`\`\n\nRequest: ${text}`;
+            appendMessage('User', text);
+            promptInput.value = '';
+            sendBtn.disabled = true;
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = "flex items-center gap-2 text-slate-500 text-xs p-2";
+            loadingDiv.innerHTML = `<div class="loader"></div> Asking ${settings.provider}...`;
+            chatHistory.appendChild(loadingDiv);
+            const response = await callAI(fullPrompt);
+            chatHistory.removeChild(loadingDiv);
+            appendMessage('Assistant', response);
+            sendBtn.disabled = false;
+        });
+        lucide.createIcons();
+    </script>
+</body>
+</html>

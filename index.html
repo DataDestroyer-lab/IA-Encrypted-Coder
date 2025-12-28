@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure AI Code Vault - Admin Control</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <!-- PrismJS for Syntax Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col bg-slate-950 text-slate-200 font-inter">
+
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 transition-opacity duration-500">
+        
+        <div id="login-container" class="w-full max-w-md p-8 bg-slate-900 rounded-xl border border-slate-800 shadow-2xl relative">
+            <div class="flex justify-center mb-6">
+                <div class="relative">
+                    <i data-lucide="shield-lock" class="w-16 h-16 text-emerald-500" id="lock-icon"></i>
+                    <div class="absolute -bottom-1 -right-1 bg-slate-800 rounded-full p-1 border border-slate-700">
+                        <i data-lucide="users" class="w-4 h-4 text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <h1 class="text-2xl font-bold text-center text-white mb-2" id="login-title">Secure Vault</h1>
+            <p class="text-slate-400 text-center mb-6 text-sm" id="login-subtitle">Restricted Access System</p>
+            
+            <form id="login-form" class="space-y-4">
+                <div class="relative">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Username</label>
+                    <div class="relative">
+                        <input type="text" id="auth-username" 
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all placeholder-slate-500"
+                            placeholder="username">
+                        <i data-lucide="user" class="absolute left-3 top-3.5 w-5 h-5 text-slate-500"></i>
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
+                    <div class="relative">
+                        <input type="password" id="master-password" 
+                            class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-4 pr-10 py-3 text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all placeholder-slate-500"
+                            placeholder="••••••••••••" required>
+                        <button type="button" id="toggle-password" class="absolute right-3 top-3 text-slate-500 hover:text-white">
+                            <i data-lucide="eye" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-2 pt-2">
+                    <button type="submit" 
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2" id="unlock-btn">
+                        <i data-lucide="log-in"></i> <span id="btn-text">Unlock Vault</span>
+                    </button>
+                    <button type="button" id="phone-login-btn" 
+                        class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="smartphone"></i> Login with iPhone
+                    </button>
+                </div>
+            </form>
+            
+            <div id="auth-error" class="mt-4 text-xs text-red-400 text-center hidden"></div>
+
+            <div class="mt-4 border-t border-slate-800 pt-4 text-center">
+                <p class="text-[10px] text-slate-600">Access Restricted to Authorized Personnel Only</p>
+                <button id="show-reset-btn" class="text-xs text-slate-500 hover:text-slate-300 mt-2">
+                    Reset Workspace
+                </button>
+            </div>
+        </div>
+
+        <div id="remote-login-container" class="w-full max-w-md p-8 bg-slate-900 rounded-xl border border-slate-800 shadow-2xl relative hidden flex flex-col items-center">
+            <h2 class="text-xl font-bold text-white mb-4">Scan with iPhone</h2>
+            <div id="remote-qr-display" class="bg-white p-2 rounded-lg mb-4"></div>
+            <p id="qr-status-msg" class="text-slate-400 text-center text-sm mb-6">
+                1. Open Camera on your iPhone.<br>
+                2. Scan code (or click) to connect.<br>
+                3. Confirm with Face ID on your phone.
+            </p>
+            <div class="flex items-center gap-2 text-xs text-emerald-400 animate-pulse mb-6">
+                <i data-lucide="wifi" class="w-4 h-4"></i> Waiting for phone...
+            </div>
+            <button id="cancel-remote-btn" class="text-slate-500 hover:text-white text-sm">Cancel</button>
+        </div>
+
+        <div id="phone-auth-container" class="w-full max-w-md p-8 bg-slate-900 rounded-xl border border-slate-800 shadow-2xl relative hidden">
+            <div class="flex justify-center mb-6">
+                <i data-lucide="smartphone" class="w-16 h-16 text-blue-500"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-center text-white mb-2">iPhone Passkey</h1>
+            <p class="text-slate-400 text-center mb-6 text-sm">"Secure Vault" would like to sign in.</p>
+            
+            <div class="flex justify-center mb-6">
+                <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700 animate-pulse">
+                    <i data-lucide="scan-face" class="w-8 h-8 text-emerald-500"></i>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <button type="button" id="passkey-btn"
+                    class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="fingerprint" class="w-5 h-5"></i> Continue with Face ID
+                </button>
+            </div>
+            <div id="phone-status" class="mt-4 text-center text-xs text-slate-500"></div>
+        </div>
+
+        <div id="reset-modal" class="absolute inset-0 bg-slate-950/90 flex items-center justify-center hidden z-[60]">
+            <div class="bg-red-950/50 border border-red-800 p-6 rounded-xl max-w-sm text-center">
+                <h3 class="text-red-400 font-bold text-lg mb-2">⚠️ Danger Zone</h3>
+                <p class="text-slate-300 text-sm mb-4">
+                    This will locally wipe data if decryption is failing. 
+                    If you are logged in, it deletes your account data permanently.
+                </p>
+                <div class="flex gap-2 justify-center">
+                    <button id="cancel-reset-btn" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded text-sm">Cancel</button>
+                    <button id="confirm-reset-btn" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded text-sm font-bold">Wipe Data</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm hidden">
+        <div class="bg-slate-900 border border-yellow-600 p-6 rounded-xl w-96 shadow-2xl transform transition-all relative max-h-[90vh] overflow-y-auto">
+            <div class="absolute -top-3 -left-3 bg-yellow-600 text-black text-xs font-bold px-2 py-1 rounded">ADMIN MODE</div>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-yellow-500 flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i> Admin Console
+                </h2>
+                <button id="close-admin-btn" class="text-slate-500 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6 text-sm">
+                <!-- System Stats -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-slate-800 p-2 rounded border border-slate-700 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Users</div>
+                        <div class="text-xl font-bold text-white" id="stat-users">0</div>
+                    </div>
+                    <div class="bg-slate-800 p-2 rounded border border-slate-700 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Files</div>
+                        <div class="text-xl font-bold text-white" id="stat-files">0</div>
+                    </div>
+                    <div class="bg-slate-800 p-2 rounded border border-slate-700 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Storage</div>
+                        <div class="text-xl font-bold text-white" id="stat-storage">0KB</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                    <h3 class="text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Create New User
+                    </h3>
+                    <div class="space-y-2">
+                        <input type="text" id="new-user-name" placeholder="Username (e.g. john)" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-white text-xs">
+                        <input type="text" id="new-user-pass" placeholder="Password" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-white text-xs">
+                        <button id="btn-create-user" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold py-2 rounded transition">
+                            Create & Enable User
+                        </button>
+                    </div>
+                    <p id="create-user-status" class="text-[10px] mt-2 text-center text-slate-400 h-4"></p>
+                </div>
+
+                <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                    <h3 class="text-yellow-500 font-bold mb-3 flex items-center gap-2">
+                        <i data-lucide="key" class="w-4 h-4"></i> Admin Profile
+                    </h3>
+                    <div class="space-y-2">
+                        <input type="text" id="admin-change-pass" placeholder="New Master Password" class="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-white text-xs">
+                        <button id="btn-change-admin-pass" class="w-full bg-yellow-700 hover:bg-yellow-600 text-white text-xs font-bold py-2 rounded transition">
+                            Update Master Password
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                    <h3 class="text-blue-400 font-bold mb-3 flex items-center gap-2">
+                        <i data-lucide="users" class="w-4 h-4"></i> Manage Users
+                    </h3>
+                    <div id="admin-user-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
+                        <div class="text-center text-xs text-slate-500 italic">Loading users...</div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 p-3 rounded border border-slate-700">
+                    <h3 class="text-purple-400 font-bold mb-3 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4"></i> Activity Logs
+                    </h3>
+                    <div id="admin-activity-log" class="space-y-1 max-h-40 overflow-y-auto text-[10px] font-mono text-slate-400 pr-1">
+                        <div class="text-center italic">No logs yet...</div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700 pt-4">
+                    <h3 class="text-red-400 font-bold mb-2">Danger Zone</h3>
+                    <button id="admin-force-reset-btn" class="w-full bg-red-900/50 hover:bg-red-900 text-red-200 border border-red-800 font-bold py-2 rounded transition-colors flex items-center justify-center gap-2 text-xs">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i> Factory Reset My Account
+                    </button>
+                    <div class="mt-3">
+                        <button id="btn-ensure-admin" class="w-full bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-800 font-bold py-2 rounded transition-colors flex items-center justify-center gap-2 text-xs">
+                            <i data-lucide="shield-check" class="w-3 h-3"></i> Ensure Admin User
+                        </button>
+                        <p id="ensure-admin-status" class="text-[10px] mt-2 text-slate-400 text-center h-4"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="credential-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="bg-slate-900 border border-blue-500 p-6 rounded-xl w-96 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="key" class="w-5 h-5 text-blue-400"></i> Generate Credential
+                </h2>
+                <button id="close-cred-btn" class="text-slate-500 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Username</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="gen-username" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm" placeholder="User">
+                        <button id="btn-gen-user" class="bg-slate-700 px-3 py-2 rounded text-slate-300 hover:text-white" title="Generate Random User"><i data-lucide="shuffle" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Password</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="gen-password" class="flex-1 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white text-sm font-mono" placeholder="Password">
+                        <button id="btn-gen-pass" class="bg-slate-700 px-3 py-2 rounded text-slate-300 hover:text-white" title="Generate Strong Password"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+                <div class="pt-4">
+                    <button id="save-cred-btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded transition">
+                        Save to Vault
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-xl w-96 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="settings" class="w-5 h-5 text-slate-400"></i> Settings
+                </h2>
+                <button id="close-settings-btn" class="text-slate-500 hover:text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Active Provider</label>
+                    <select id="active-provider" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm outline-none">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI (ChatGPT)</option>
+                        <option value="perplexity">Perplexity AI</option>
+                    </select>
+                </div>
+                <div id="config-gemini" class="provider-config">
+                    <label class="block text-xs font-bold text-blue-400 uppercase tracking-wider mb-2">Gemini Model</label>
+                    <select id="gemini-model" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm mb-3">
+                        <option value="gemini-2.5-flash-preview-09-2025">Gemini 2.5 Flash</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    </select>
+                    <input type="password" id="gemini-key" placeholder="API Key (Optional)" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2 text-sm">
+                </div>
+                <div id="config-openai" class="provider-config hidden">
+                    <label class="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">ChatGPT Model</label>
+                    <select id="openai-model" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm mb-3">
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                    </select>
+                    <input type="password" id="openai-key" placeholder="sk-..." class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2 text-sm">
+                </div>
+                <div id="config-perplexity" class="provider-config hidden">
+                    <label class="block text-xs font-bold text-teal-400 uppercase tracking-wider mb-2">Perplexity Model</label>
+                    <select id="perplexity-model" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2.5 text-sm mb-3">
+                        <option value="sonar-pro">Sonar Pro</option>
+                        <option value="sonar">Sonar</option>
+                    </select>
+                    <input type="password" id="perplexity-key" placeholder="pplx-..." class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-2 text-sm">
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-4 border-t border-slate-700">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Security & Editor</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1">Auto-Lock (Minutes)</label>
+                        <input type="number" id="setting-autolock" class="w-full bg-slate-800 border border-slate-600 text-white rounded p-2 text-xs" min="0" placeholder="0 = Disabled">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1">Font Size (px)</label>
+                        <input type="number" id="setting-fontsize" class="w-full bg-slate-800 border border-slate-600 text-white rounded p-2 text-xs" min="10" max="32">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-700">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">User Preferences</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="setting-learning-mode" class="w-4 h-4 bg-slate-800 border-slate-600 rounded text-blue-600 focus:ring-0 cursor-pointer">
+                        <label for="setting-learning-mode" class="text-[10px] text-slate-500 select-none cursor-pointer">Learning Mode</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="setting-autosave" class="w-4 h-4 bg-slate-800 border-slate-600 rounded text-blue-600 focus:ring-0 cursor-pointer">
+                        <label for="setting-autosave" class="text-[10px] text-slate-500 select-none cursor-pointer">Auto-Save</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 pt-6 border-t border-slate-700">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Syntax Colors</h3>
+                    <button id="reset-colors-btn" class="text-[10px] text-slate-500 hover:text-white transition underline">Reset Default</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1">Keywords</label>
+                        <input type="color" id="color-keyword" class="w-full h-8 bg-slate-800 rounded cursor-pointer" value="#cc99cd">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1">Strings</label>
+                        <input type="color" id="color-string" class="w-full h-8 bg-slate-800 rounded cursor-pointer" value="#7ec699">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-500 mb-1">Functions</label>
+                        <input type="color" id="color-function" class="w-full h-8 bg-slate-800 rounded cursor-pointer" value="#61aeee">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <button id="save-settings-btn" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-lg transition-colors">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-layout" class="flex-1 flex hidden opacity-0 transition-opacity duration-500">
+        
+        <div class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0 relative">
+            <div id="admin-banner" class="hidden bg-yellow-600 text-black text-[10px] font-bold text-center py-1 uppercase tracking-wider">
+                Admin Mode Active
+            </div>
+
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h2 class="font-bold text-slate-200 flex items-center gap-2">
+                    <i data-lucide="files" class="w-4 h-4"></i> Files
+                </h2>
+                <div class="flex gap-1">
+                    <button id="new-folder-btn" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition" title="New Folder">
+                        <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                    </button>
+                    <button id="new-file-btn" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition" title="New File">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                </div>
+            
+            <div class="p-4 border-t border-slate-800 flex flex-col gap-3">
+                <div class="text-xs text-slate-500 flex flex-col gap-1">
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="user" class="w-3 h-3"></i> 
+                        <span id="user-email-display" class="truncate">Guest</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <i data-lucide="lock" class="w-3 h-3"></i> 
+                        <span>E2E Encrypted:</span>
+                        <span id="e2e-hash" class="font-mono text-[10px] text-emerald-400"></span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-2">
+                    <button id="open-settings-btn" class="flex-1 flex items-center justify-center gap-2 text-sm text-slate-400 hover:text-white transition p-2 rounded hover:bg-slate-800 bg-slate-900 border border-slate-800">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                    </button>
+                    <button id="relock-btn" class="flex-1 flex items-center justify-center gap-2 text-sm text-amber-500 hover:text-amber-400 transition p-2 rounded hover:bg-slate-800 bg-slate-900 border border-slate-800" title="Relock">
+                        <i data-lucide="lock" class="w-4 h-4"></i>
+                    </button>
+                    <button id="open-cred-btn" class="flex-1 flex items-center justify-center gap-2 text-sm text-blue-500 hover:text-blue-400 transition p-2 rounded hover:bg-slate-800 bg-slate-900 border border-slate-800" title="Generate Password">
+                        <i data-lucide="key" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <button id="admin-tools-btn" class="hidden w-full flex items-center justify-center gap-2 text-sm bg-yellow-900/30 text-yellow-500 hover:bg-yellow-900/50 border border-yellow-900/50 transition p-2 rounded" title="User Management">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i> Admin Tools
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col bg-slate-950 relative">
+            <!-- Tabs Bar -->
+            <div id="editor-tabs-bar" class="flex bg-[#0B0E14] border-b border-[#30363d] overflow-x-auto h-9 select-none"></div>
+
+            <div class="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur">
+                <div class="flex-1 flex items-center gap-4">
+                    <input type="text" id="file-title" 
+                        class="bg-transparent border-none text-white font-bold text-lg focus:ring-0 w-64 placeholder-slate-600 truncate"
+                        placeholder="Untitled">
+                    
+                    <select id="file-language" class="bg-slate-800 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none w-32">
+                        <option value="text">Plain Text</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="python">Python</option>
+                        <option value="html">HTML</option>
+                        <option value="json">JSON</option>
+                        <option value="css">CSS</option>
+                        <option value="java">Java</option>
+                        <option value="cpp">C++</option>
+                        <option value="sql">SQL</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <div id="db-status" class="flex items-center gap-2 px-2 py-0.5 bg-[#0B0E14] border border-[#30363d]" title="Database Connection">
+                        <div id="db-indicator" class="w-1.5 h-1.5 rounded-full bg-[#484f58]"></div>
+                        <span id="db-text" class="text-[10px] text-[#8b949e] font-medium">OFFLINE</span>
+                    </div>
+                    <button id="sync-btn" class="text-[#8b949e] hover:text-white p-1 hover:bg-[#21262d] transition" title="Sync Now">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                    <span id="save-status" class="text-[10px] text-[#8b949e] font-mono uppercase">Unsaved</span>
+                    
+                    <button id="delete-btn" class="text-[#ff7b72] hover:text-[#ffa198] p-1.5 hover:bg-[#9B1C1C]/20 transition hidden" title="Delete File">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+
+                    <button id="download-btn" class="text-[#8b949e] hover:text-white p-1.5 hover:bg-[#21262d] transition" title="Download">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+
+                    <button id="save-btn" class="bg-[#9B1C1C] hover:bg-[#b91c1c] text-white px-3 py-1 text-xs font-bold flex items-center gap-2 transition uppercase">
+                        <i data-lucide="save" class="w-4 h-4"></i> Save
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 relative bg-[#0B0E14]">
+                <div class="absolute inset-0 flex" id="editor-container">
+                    <!-- Line Numbers -->
+                    <div id="line-numbers" class="w-12 flex-shrink-0 bg-[#0B0E14] text-[#484f58] text-right select-none border-r border-[#30363d] overflow-hidden pt-[10px] pr-2 font-mono text-xs leading-6"></div>
+                    <!-- Editor Area -->
+                    <div class="relative flex-1 h-full overflow-hidden" id="editor-wrapper">
+                        <!-- Syntax Layer (Bottom) -->
+                        <pre id="highlighting" aria-hidden="true" class="absolute inset-0 w-full h-full editor-layer"><code class="language-text" id="highlighting-content"></code></pre>
+                        <!-- Input Layer (Top) -->
+                        <textarea id="code-editor" class="absolute inset-0 w-full h-full resize-none focus:outline-none editor-layer" spellcheck="false" placeholder="// Start coding..."></textarea>
+                        
+                        <!-- Find & Replace Widget -->
+                        <div id="find-widget" class="absolute top-0 right-0 z-20 bg-[#161B22] border-b border-l border-[#30363d] p-2 flex flex-col gap-2 shadow-xl hidden w-72">
+                            <div class="flex gap-1">
+                                <input type="text" id="find-input" placeholder="Find" class="flex-1 bg-[#0B0E14] border border-[#30363d] text-xs text-white px-2 py-1 focus:border-[#9B1C1C] outline-none placeholder-[#484f58]">
+                                <button id="find-next-btn" class="bg-[#21262d] hover:bg-[#30363d] text-[#8b949e] px-2 py-1 text-xs" title="Find Next"><i data-lucide="arrow-down" class="w-3 h-3"></i></button>
+                                <button id="close-find-btn" class="bg-[#21262d] hover:bg-[#9B1C1C]/50 text-[#8b949e] hover:text-[#ff7b72] px-2 py-1 text-xs"><i data-lucide="x" class="w-3 h-3"></i></button>
+                            </div>
+                            <div class="flex gap-1">
+                                <input type="text" id="replace-input" placeholder="Replace" class="flex-1 bg-[#0B0E14] border border-[#30363d] text-xs text-white px-2 py-1 focus:border-[#9B1C1C] outline-none placeholder-[#484f58]">
+                                <button id="replace-btn" class="bg-[#21262d] hover:bg-[#30363d] text-[#8b949e] px-2 py-1 text-xs" title="Replace"><i data-lucide="replace" class="w-3 h-3"></i></button>
+                                <button id="replace-all-btn" class="bg-[#21262d] hover:bg-[#30363d] text-[#8b949e] px-2 py-1 text-xs" title="Replace All"><i data-lucide="replace-all" class="w-3 h-3"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Command Palette -->
+                        <div id="command-palette" class="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-[500px] bg-[#161B22] border border-[#30363d] shadow-2xl rounded-sm hidden flex flex-col max-h-[400px]">
+                            <input type="text" id="cmd-input" class="w-full bg-[#0B0E14] border-b border-[#30363d] p-3 text-[#e6edf3] focus:outline-none text-sm" placeholder="> Type a command...">
+                            <div id="cmd-list" class="flex-1 overflow-y-auto p-1">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Panel: Console / Logs -->
+            <div id="bottom-panel" class="h-32 border-t border-[#30363d] bg-[#0B0E14] flex flex-col">
+                <div class="flex items-center px-4 py-1 bg-[#161B22] border-b border-[#30363d] gap-4 select-none">
+                    <button id="tab-btn-logs" class="text-[10px] uppercase font-bold text-[#ff7b72] border-b-2 border-[#ff7b72] py-1 transition-colors">System Logs</button>
+                    <button id="tab-btn-terminal" class="text-[10px] uppercase font-bold text-[#8b949e] hover:text-white border-b-2 border-transparent hover:border-[#ff7b72] py-1 transition-colors hidden">Terminal</button>
+                    <div class="flex-1"></div>
+                    <button id="term-clear-btn" class="text-[10px] text-[#8b949e] hover:text-white hidden" title="Clear Terminal"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-2 font-mono text-xs space-y-1" id="tab-logs">
+                    <div class="flex gap-2 text-[#8b949e]">
+                        <span class="text-[#58a6ff]">[SYSTEM]</span> <span>Secure Vault Environment Initialized...</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-2 font-mono text-xs hidden bg-[#0B0E14]" id="tab-terminal">
+                    <div id="term-output"></div>
+                    <div class="term-input-line">
+                        <span class="term-prompt">admin@vault:~$</span>
+                        <input type="text" id="term-input" class="term-input" autocomplete="off" spellcheck="false">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Panel -->
+        <div class="w-80 bg-[#0B0E14] border-l border-[#30363d] flex flex-col flex-shrink-0">
+            <div class="p-3 border-b border-[#30363d] bg-[#161B22] z-10">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="font-bold text-[#ff7b72] text-xs uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="bot" class="w-4 h-4"></i> AI CODER
+                    </h2>
+                    <span id="current-provider-badge" class="text-[10px] bg-[#0B0E14] text-[#8b949e] px-2 py-0.5 border border-[#30363d] truncate max-w-[100px]">
+                        Gemini
+                    </span>
+                </div>
+            </div>
+
+            <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 text-sm scroll-smooth">
+                <div class="flex flex-col gap-1">
+                    <span class="text-[10px] font-bold text-[#ff7b72] uppercase">System</span>
+                    <div class="bg-[#161B22] p-3 border border-[#30363d] text-[#e6edf3] text-xs">
+                        Secure Vault AI initialized. Awaiting input.
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 border-t border-[#30363d] bg-[#161B22]">
+                <div class="relative">
+                    <textarea id="prompt-input" 
+                        class="w-full bg-[#0B0E14] border border-[#30363d] pl-3 pr-12 py-3 text-[#e6edf3] focus:border-[#9B1C1C] focus:ring-0 focus:outline-none resize-none text-xs font-mono"
+                        rows="3" placeholder="Ask AI..."></textarea>
+                    <button id="send-prompt-btn" class="absolute bottom-3 right-3 p-1.5 bg-[#9B1C1C] hover:bg-[#b91c1c] text-white transition disabled:opacity-50 shadow-lg shadow-[#9B1C1C]/20">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="file-context-menu" class="fixed bg-[#161B22] border border-[#30363d] shadow-xl py-1 z-50 hidden w-32">
+        <button id="ctx-rename" class="w-full text-left px-4 py-2 text-xs text-[#e6edf3] hover:bg-[#21262d] hover:text-white flex items-center gap-2 transition-colors">
+            <i data-lucide="edit-2" class="w-3 h-3"></i> Rename
+        </button>
+        <button id="ctx-delete" class="w-full text-left px-4 py-2 text-xs text-[#ff7b72] hover:bg-[#21262d] hover:text-[#ffa198] flex items-center gap-2 transition-colors">
+            <i data-lucide="trash" class="w-3 h-3"></i> Delete
+        </button>
+    </div>
+
+    <script src="js/Encryptdata.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,175 @@
+:root {
+    /* Arasaka / Corporate Theme - REDESIGN */
+    --bg-main: #0B0E14; /* Near-black graphite */
+    --bg-panel: #161B22; /* Gunmetal gray */
+    --border-color: #30363d; /* Dark gray border */
+    --accent-primary: #9B1C1C; /* Deep crimson red */
+    --accent-glow: rgba(155, 28, 28, 0.5);
+    --accent-secondary: #00E5FF; /* Soft neon cyan */
+    --text-primary: #F0F6FC;
+    --text-secondary: #8B949E;
+    
+    /* Syntax Highlighting for JetBrains Mono */
+    --syntax-keyword: #FF7B72;
+    --syntax-string: #A5D6FF;
+    --syntax-function: #D2A8FF;
+    
+    --editor-font-size: 14px;
+}
+
+/* Global Sharp Corners */
+* { border-radius: 0 !important; }
+
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+}
+
+/* Dark Mode Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-main); 
+}
+
+::-webkit-scrollbar-thumb {
+    background: #30363d; 
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #484f58; 
+}
+
+/* Active File State */
+.file-item.active {
+    background-color: #21262d;
+    border-left: 2px solid var(--accent-primary);
+    color: white;
+}
+
+.admin-mode-border {
+    border-color: #ca8a04 !important; /* Yellow-600 */
+}
+
+/* Tree View Indentation */
+.tree-item {
+    position: relative;
+}
+
+/* Editor Overrides for Prism */
+pre[class*="language-"] {
+    background: transparent !important;
+    text-shadow: none !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    padding: 10px !important; /* MATCH EDITOR LAYER PADDING */
+    margin: 0 !important;
+}
+
+/* Apply Custom Colors to Prism Tokens */
+.token.keyword, .token.operator, .token.tag { color: var(--syntax-keyword) !important; }
+.token.string, .token.attr-value { color: var(--syntax-string) !important; }
+.token.function, .token.class-name { color: var(--syntax-function) !important; }
+
+/* Unified Editor Layers */
+.editor-layer {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: var(--editor-font-size, 14px) !important;
+    line-height: 24px !important;
+    padding: 10px !important; /* CRITICAL: Must match pre padding */
+    margin: 0 !important;
+    border: none !important;
+    white-space: pre !important;
+    overflow: auto !important; /* Both need to scroll to handle sizing correctly */
+    box-sizing: border-box !important;
+    tab-size: 4;
+}
+
+.editor-layer code {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    white-space: pre !important;
+}
+
+/* Top Layer: Input */
+#code-editor {
+    color: transparent;
+    caret-color: var(--accent-primary); /* Red cursor for Arasaka style */
+    background: transparent;
+    z-index: 10;
+}
+
+/* Visible Selection for Transparent Text */
+#code-editor::selection {
+    background-color: rgba(155, 28, 28, 0.3); /* Red tint selection */
+}
+
+/* Bottom Layer: Syntax */
+#highlighting {
+    z-index: 0;
+    pointer-events: none; /* Let clicks pass through to textarea */
+    scrollbar-width: none; /* Hide scrollbar on visual layer */
+}
+
+#highlighting::-webkit-scrollbar {
+    display: none;
+}
+
+/* Terminal Styles */
+.term-line { display: flex; gap: 0.5rem; line-height: 1.5; word-break: break-all; }
+.term-prompt { color: #22c55e; font-weight: bold; user-select: none; } /* Green-500 */
+.term-cmd { color: #e4e4e7; } /* Zinc-200 */
+.term-success { color: #4ade80; } /* Green-400 */
+.term-error { color: #ef4444; } /* Red-500 */
+.term-warn { color: #facc15; } /* Yellow-400 */
+.term-info { color: #60a5fa; } /* Blue-400 */
+.term-input-line { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.25rem; }
+.term-input { 
+    background: transparent; 
+    border: none; 
+    color: #e4e4e7; 
+    font-family: inherit; 
+    font-size: inherit; 
+    width: 100%; 
+    outline: none; 
+}
+.active-tab-btn { border-bottom-color: #dc2626 !important; color: #ef4444 !important; }
+
+/* Editor Tabs */
+.editor-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    font-size: 12px;
+    color: #8b949e;
+    background: #0B0E14;
+    border-right: 1px solid #30363d;
+    cursor: pointer;
+    min-width: 120px;
+    max-width: 200px;
+}
+.editor-tab:hover { background: #161B22; }
+.editor-tab.active {
+    background: #161B22;
+    color: #e6edf3;
+    border-top: 2px solid #9B1C1C;
+}
+.editor-tab-close { opacity: 0; border-radius: 2px; padding: 2px; }
+.editor-tab:hover .editor-tab-close { opacity: 1; }
+.editor-tab-close:hover { background: #30363d; color: #ff7b72; }
+
+/* Command Palette */
+.cmd-item { padding: 8px 12px; font-size: 12px; color: #c9d1d9; cursor: pointer; display: flex; justify-content: space-between; }
+.cmd-item:hover, .cmd-item.selected { background: #21262d; color: white; }
+.cmd-shortcut { color: #8b949e; font-size: 10px; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
